@@ -68,6 +68,9 @@ PROGRAMS_J1939_TIMEDATE := \
 	j1939-timedate-srv \
 	j1939-timedate-cli
 
+PROGRAMS_J1939_BJM := \
+	j1939-bjm-srv
+
 ifeq ($(HAVE_LIBGPS),1)
 PROGRAMS_J1939_VEHICLE_POSITION := \
 	j1939-vehicle-position-srv
@@ -108,6 +111,7 @@ PROGRAMS_SLCAN := \
 PROGRAMS := \
 	$(PROGRAMS_CANGW) \
 	$(PROGRAMS_J1939_TIMEDATE) \
+	$(PROGRAMS_J1939_BJM) \
 	$(PROGRAMS_J1939_VEHICLE_POSITION) \
 	$(PROGRAMS_ISOBUSFS) \
 	$(PROGRAMS_ISOBUS_HRTBTM) \
@@ -140,7 +144,7 @@ all: $(PROGRAMS)
 
 clean:
 	rm -f $(PROGRAMS) *.o mcp251xfd/*.o isobusfs/*.o j1939_timedate/*.o \
-		j1939_vehicle_position/*.o isobus_hrtbtm/*.o
+		j1939_vehicle_position/*.o j1939_bjm/*.o isobus_hrtbtm/*.o
 
 install:
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
@@ -168,6 +172,7 @@ isobusfs_c.o:	lib.h libj1939.h
 j1939_timedate_srv.o: lib.h libj1939.h
 j1939_timedate_cli.o: lib.h libj1939.h
 j1939_vehicle_position_srv.o: lib.h libj1939.h
+j1939_bjm_srv.o: lib.h libj1939.h
 isobus_hrtbtm_srv.o: lib.h libj1939.h
 isobus_hrtbtm_mon.o: lib.h libj1939.h
 
@@ -198,6 +203,11 @@ j1939-timedate-srv:	lib.o \
 j1939-timedate-cli:	lib.o \
 			libj1939.o \
 			j1939_timedate/j1939_timedate_cli.o
+		$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
+
+j1939-bjm-srv:	lib.o \
+			libj1939.o \
+			j1939_bjm/j1939_bjm_srv.o
 		$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 j1939-vehicle-position-srv: \
