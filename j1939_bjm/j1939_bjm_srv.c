@@ -322,13 +322,14 @@ static int j1939_bjm_get_data(struct j1939_bjm_srv_priv *priv, struct j1939_bjm_
 	}
 
 	/*
-	 * Byte 4 contains the X and Y axis detent position status values.
-	 * - Bits 7-8: X-axis detent position status (SPN 1795 / 1815)
-	 * - Bits 5-6: Y-axis detent position status (SPN 1799 / 1819)
-	 * - Bits 1-4: Reserved
-	 * Set them to 1 (in detent position) if the corresponding axis is at 0.
+	 * Byte 5 contains the X and Y axis detent position status values.
+	 * - Bits 7-8: X-axis detent position status (SPN 2680 / 2717)
+	 * - Bits 5-6: Y-axis detent position status (SPN 2681 / 2718)
+	 * - Bits 1-4: Reserved, transmitted as all 1s per J1939-71
+	 * Report "in detent" when the axis sits at exactly full positive
+	 * travel, the nearest analogue of a lever latched in its end detent.
 	 */
-	bjmp->detent_reserved = (((joy->x == 0) & 0x3) << 6) | (((joy->y == 0) & 0x3) << 4);
+	bjmp->detent_reserved = (((joy->x == 32767) & 0x3) << 6) | (((joy->y == 32767) & 0x3) << 4) | 0x0f;
 
 	return 0;
 }

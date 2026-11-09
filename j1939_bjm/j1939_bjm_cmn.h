@@ -91,12 +91,18 @@ enum j1939_bjm_status {
  *
  * @y_pos_msb: Joystick Y-Axis Position, 8 MSBs (SPN 1799 / 1819)
  *
+ * @detent_reserved: Axis detent position statuses and reserved bits
+ *           - Bits 1-4: Reserved, transmitted as all 1s as per J1939-71,
+ *             section 5.2
+ *           - Bits 5-6: Joystick Y-Axis Detent Position Status
+ *             (SPN 2681 / 2718)
+ *           - Bits 7-8: Joystick X-Axis Detent Position Status
+ *             (SPN 2680 / 2717)
+ *
  * @buttons: Button 1 to 12 Pressed Status, 2 bits each, 4 buttons per byte
  *           - Byte 0: Buttons 1 to 4 (SPNs 1800-1803 / 1820-1823)
  *           - Byte 1: Buttons 5 to 8 (SPNs 1804-1807 / 1824-1827)
  *           - Byte 2: Buttons 9 to 12 (SPNs 1808-1811 / 1828-1831)
- *
- * @reserved: Not assigned, must be set to 0xFF as per J1939-71, section 5.2
  *
  * This structure defines each component of the Basic Joystick Message as
  * described in PGN 64982 (BJM1) and PGN 64984 (BJM2). Both PGNs share the
