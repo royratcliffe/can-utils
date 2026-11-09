@@ -1,0 +1,96 @@
+# SPDX-License-Identifier: LGPL-2.0-only
+# SPDX-FileCopyrightText: 2026 Roy Ratcliffe <roy@ratcliffe.me>
+#
+# Copy to /etc/systemd/system/j1939-bjm-srv.service then run:
+#   systemctl daemon-reload
+#   systemctl enable --now j1939-bjm-srv
+# Check it using:
+#   systemctl status j1939-bjm-srv
+#
+# Override the CAN interface, J1939 address and extra options without
+# editing this file by creating /etc/default/j1939-bjm-srv, e.g.:
+#   INTERFACE=can0
+#   LOCAL_ADDR=0x90
+#   OPTIONS=--joy1 /dev/input/js0
+#
+# For the lowest and most deterministic latency, pair this unit with a
+# PREEMPT_RT kernel and consider isolating a CPU on the kernel command
+# line (isolcpus=, nohz_full=, irqaffinity=) matched by CPUAffinity=
+# below.
+
+[Unit]
+Description=J1939 Basic Joystick Message Server
+Documentation=https://github.com/linux-can/can-utils
+
+# Bind the service lifetime to the CAN interface device: start only once
+# the interface exists and stop if it disappears.
+BindsTo=sys-subsystem-net-devices-can0.device
+After=sys-subsystem-net-devices-can0.device
+
+[Service]
+Type=exec
+Environment=INTERFACE=can0
+Environment=LOCAL_ADDR=0x90
+EnvironmentFile=-/etc/default/j1939-bjm-srv
+ExecStart=/usr/bin/j1939-bjm-srv -i ${INTERFACE} -a ${LOCAL_ADDR} $OPTIONS
+
+Restart=on-failure
+RestartSec=2
+
+# --- Real-time performance ---
+# SCHED_FIFO pre-empts all normal (SCHED_OTHER) work; keep the priority
+# below kernel threads such as per-CPU irq threads (typically 50+ on
+# PREEMPT_RT would contend, so 50-80 is a sensible band for the hot path).
+CPUSchedulingPolicy=fifo
+CPUSchedulingPriority=70
+# Real-time I/O scheduling class for any block I/O the daemon issues.
+IOSchedulingClass=realtime
+IOSchedulingPriority=0
+# Allow the process to retain/raise real-time priorities and to lock
+# memory, and never throttle its real-time runtime.
+LimitRTPRIO=99
+LimitRTTIME=infinity
+LimitMEMLOCK=infinity
+# Minimise timer coalescing delay for clock_nanosleep/poll timeouts.
+TimerSlackNSec=10000
+# Make the daemon a last-resort target for the OOM killer.
+OOMScoreAdjust=-900
+# Pin to an isolated CPU for best determinism (match isolcpus=):
+#CPUAffinity=3
+# Prevent any forked children from inheriting real-time scheduling:
+#CPUSchedulingResetOnFork=yes
+
+# --- Privileges ---
+# The J1939 socket needs no privilege; joystick nodes are usually owned
+# by group "input". Uncomment to drop root entirely (systemd applies the
+# real-time scheduling above before dropping privileges):
+#User=j1939
+#Group=j1939
+#SupplementaryGroups=input
+
+# --- Sandboxing (kept compatible with CAN sockets and /dev/input) ---
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=no
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_CAN AF_UNIX
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+# Joystick devices only; read-only is sufficient (opened O_RDONLY).
+DevicePolicy=closed
+DeviceAllow=char-input r
+# Note: do NOT set RestrictRealtime=yes or PrivateDevices=yes — they
+# would defeat the real-time scheduling and joystick access above.
+
+[Install]
+WantedBy=multi-user.target
