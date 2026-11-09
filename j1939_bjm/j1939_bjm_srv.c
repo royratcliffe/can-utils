@@ -21,6 +21,9 @@
 /* Lever travel below this fraction of full scale counts as neutral */
 #define J1939_BJM_SRV_DEADBAND 1024 /* ~3 % of 32767 */
 
+/* Lever travel within this margin of full scale counts as in detent */
+#define J1939_BJM_SRV_DETENT_BAND (32767 / 1000) /* 0.1 % of 32767 */
+
 #define J1939_BJM_SRV_JOY1_DEFAULT "/dev/input/js0"
 #define J1939_BJM_SRV_JOY2_DEFAULT "/dev/input/js1"
 
@@ -260,13 +263,15 @@ static uint16_t j1939_bjm_axis_fill(int16_t value, enum j1939_bjm_status *neutra
  *
  * The BJM detent position status reports a lever latched in an end-of-travel
  * detent. A PC joystick has no physical detent, so report "in detent" when
- * the axis magnitude sits at exactly full travel in either direction.
+ * the axis magnitude is within 0.1 % of full travel in either direction.
  *
  * Return: true if the axis is at full travel, false otherwise.
  */
 static bool j1939_bjm_axis_in_detent(int16_t value)
 {
-	return value == 32767 || value == -32767;
+	int32_t magnitude = value < 0 ? -(int32_t)value : value;
+
+	return magnitude >= 32767 - J1939_BJM_SRV_DETENT_BAND;
 }
 
 /**
