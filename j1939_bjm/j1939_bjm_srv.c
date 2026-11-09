@@ -255,6 +255,21 @@ static uint16_t j1939_bjm_axis_fill(int16_t value, enum j1939_bjm_status *neutra
 }
 
 /**
+ * j1939_bjm_axis_in_detent - Test whether a raw axis value is in detent.
+ * @value: Raw joystick axis value in the range -32767 to 32767.
+ *
+ * The BJM detent position status reports a lever latched in an end-of-travel
+ * detent. A PC joystick has no physical detent, so report "in detent" when
+ * the axis magnitude sits at exactly full travel in either direction.
+ *
+ * Return: true if the axis is at full travel, false otherwise.
+ */
+static bool j1939_bjm_axis_in_detent(int16_t value)
+{
+	return value == 32767 || value == -32767;
+}
+
+/**
  * j1939_bjm_get_data - Populate a BJM packet from a joystick slot.
  * @priv: Pointer to the server's private data structure.
  * @joy: Pointer to the joystick slot to encode.
@@ -285,7 +300,7 @@ static int j1939_bjm_get_data(struct j1939_bjm_srv_priv *priv, struct j1939_bjm_
 		for (i = 1; i <= J1939_BJM_NUM_BUTTONS; ++i)
 			j1939_bjm_set_button(bjmp, i, fail_status);
 
-		bjmp->detent_reserved = 0xff;
+		bjmp->detent_reserved = 0xf0;
 
 		return 0;
 	}
@@ -326,10 +341,11 @@ static int j1939_bjm_get_data(struct j1939_bjm_srv_priv *priv, struct j1939_bjm_
 	 * - Bits 7-8: X-axis detent position status (SPN 2680 / 2717)
 	 * - Bits 5-6: Y-axis detent position status (SPN 2681 / 2718)
 	 * - Bits 1-4: Reserved, transmitted as all 1s per J1939-71
-	 * Report "in detent" when the axis sits at exactly full positive
-	 * travel, the nearest analogue of a lever latched in its end detent.
+	 * Report "in detent" when the axis sits at exactly full travel in
+	 * either direction, the nearest analogue of a lever latched in its
+	 * end detent.
 	 */
-	bjmp->detent_reserved = (((joy->x == 32767) & 0x3) << 6) | (((joy->y == 32767) & 0x3) << 4) | 0x0f;
+	bjmp->detent_reserved = (j1939_bjm_axis_in_detent(joy->x) << 6) | (j1939_bjm_axis_in_detent(joy->y) << 4);
 
 	return 0;
 }
