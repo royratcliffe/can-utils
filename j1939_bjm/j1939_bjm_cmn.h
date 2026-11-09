@@ -14,9 +14,9 @@
 #include "../libj1939.h"
 #include "../lib.h"
 
-#define J1939_PGN_REQUEST_PGN				0x0ea00 /* 59904 */
+#define J1939_PGN_REQUEST_PGN 0x0ea00 /* 59904 */
 
-#define J1939_BJM_MAX_TRANSFER_LENGH			1024
+#define J1939_BJM_MAX_TRANSFER_LENGH 1024
 
 struct j1939_bjm_stats {
 	int err;
@@ -37,19 +37,18 @@ struct j1939_bjm_msg {
 /* SAE J1939 specific definitions */
 
 /* SAE J1939-71 - pgn64982 - Basic Joystick Message 1 - BJM1 - */
-#define J1939_PGN_BJM1					0x0fdd6 /* 64982 */
+#define J1939_PGN_BJM1 0x0fdd6 /* 64982 */
 /* SAE J1939-71 - pgn64984 - Basic Joystick Message 2 - BJM2 - */
-#define J1939_PGN_BJM2					0x0fdd8 /* 64984 */
+#define J1939_PGN_BJM2 0x0fdd8 /* 64984 */
 
-#define J1939_BJM_PRIO_DEFAULT				3
-#define J1939_BJM_MAX_TRANSFER_LENGTH \
-	sizeof(struct j1939_bjm_packet)
-#define J1939_BJM_REPETITION_RATE_MS			100
-#define J1939_BJM_JITTER_MS				20
+#define J1939_BJM_PRIO_DEFAULT 3
+#define J1939_BJM_MAX_TRANSFER_LENGTH sizeof(struct j1939_bjm_packet)
+#define J1939_BJM_REPETITION_RATE_MS 100
+#define J1939_BJM_JITTER_MS 20
 
 /* 10 bit position: 0.1 %/bit, valid range 0 to 1000 (0 to 100 %) */
-#define J1939_BJM_POSITION_MAX				1000
-#define J1939_BJM_POSITION_NOT_AVAILABLE		0x3ff
+#define J1939_BJM_POSITION_MAX 1000
+#define J1939_BJM_POSITION_NOT_AVAILABLE 0x3ff
 
 /**
  * enum j1939_bjm_status - Two bit discrete status used by the BJM PGNs
@@ -123,15 +122,9 @@ struct j1939_bjm_packet {
  * @negative: Lever left negative position status
  * @positive: Lever right positive position status
  */
-static inline void
-j1939_bjm_set_x_statuses(struct j1939_bjm_packet *packet,
-			 enum j1939_bjm_status neutral,
-			 enum j1939_bjm_status negative,
-			 enum j1939_bjm_status positive)
+static inline void j1939_bjm_set_x_statuses(struct j1939_bjm_packet *packet, enum j1939_bjm_status neutral, enum j1939_bjm_status negative, enum j1939_bjm_status positive)
 {
-	packet->x_status_pos = (packet->x_status_pos & 0xc0) |
-			       (neutral & 0x3) | ((negative & 0x3) << 2) |
-			       ((positive & 0x3) << 4);
+	packet->x_status_pos = (packet->x_status_pos & 0xc0) | (neutral & 0x3) | ((negative & 0x3) << 2) | ((positive & 0x3) << 4);
 }
 
 /**
@@ -140,8 +133,7 @@ j1939_bjm_set_x_statuses(struct j1939_bjm_packet *packet,
  *
  * Return: X-axis neutral position status
  */
-static inline enum j1939_bjm_status
-j1939_bjm_get_x_neutral(const struct j1939_bjm_packet *packet)
+static inline enum j1939_bjm_status j1939_bjm_get_x_neutral(const struct j1939_bjm_packet *packet)
 {
 	return packet->x_status_pos & 0x3;
 }
@@ -151,11 +143,9 @@ j1939_bjm_get_x_neutral(const struct j1939_bjm_packet *packet)
  * @packet: Pointer to the J1939 BJM packet
  * @position: Lever travel from neutral in 0.1 % units (0 to 1000)
  */
-static inline void
-j1939_bjm_set_x_position(struct j1939_bjm_packet *packet, uint16_t position)
+static inline void j1939_bjm_set_x_position(struct j1939_bjm_packet *packet, uint16_t position)
 {
-	packet->x_status_pos = (packet->x_status_pos & 0x3f) |
-			       ((position & 0x3) << 6);
+	packet->x_status_pos = (packet->x_status_pos & 0x3f) | ((position & 0x3) << 6);
 	packet->x_pos_msb = (position >> 2) & 0xff;
 }
 
@@ -165,8 +155,7 @@ j1939_bjm_set_x_position(struct j1939_bjm_packet *packet, uint16_t position)
  *
  * Return: Lever travel from neutral in 0.1 % units (0 to 1000)
  */
-static inline uint16_t
-j1939_bjm_get_x_position(const struct j1939_bjm_packet *packet)
+static inline uint16_t j1939_bjm_get_x_position(const struct j1939_bjm_packet *packet)
 {
 	return (packet->x_status_pos >> 6) | (packet->x_pos_msb << 2);
 }
@@ -178,15 +167,9 @@ j1939_bjm_get_x_position(const struct j1939_bjm_packet *packet)
  * @negative: Lever back negative position status
  * @positive: Lever forward positive position status
  */
-static inline void
-j1939_bjm_set_y_statuses(struct j1939_bjm_packet *packet,
-			 enum j1939_bjm_status neutral,
-			 enum j1939_bjm_status negative,
-			 enum j1939_bjm_status positive)
+static inline void j1939_bjm_set_y_statuses(struct j1939_bjm_packet *packet, enum j1939_bjm_status neutral, enum j1939_bjm_status negative, enum j1939_bjm_status positive)
 {
-	packet->y_status_pos = (packet->y_status_pos & 0xc0) |
-			       (neutral & 0x3) | ((negative & 0x3) << 2) |
-			       ((positive & 0x3) << 4);
+	packet->y_status_pos = (packet->y_status_pos & 0xc0) | (neutral & 0x3) | ((negative & 0x3) << 2) | ((positive & 0x3) << 4);
 }
 
 /**
@@ -195,8 +178,7 @@ j1939_bjm_set_y_statuses(struct j1939_bjm_packet *packet,
  *
  * Return: Y-axis neutral position status
  */
-static inline enum j1939_bjm_status
-j1939_bjm_get_y_neutral(const struct j1939_bjm_packet *packet)
+static inline enum j1939_bjm_status j1939_bjm_get_y_neutral(const struct j1939_bjm_packet *packet)
 {
 	return packet->y_status_pos & 0x3;
 }
@@ -206,11 +188,9 @@ j1939_bjm_get_y_neutral(const struct j1939_bjm_packet *packet)
  * @packet: Pointer to the J1939 BJM packet
  * @position: Lever travel from neutral in 0.1 % units (0 to 1000)
  */
-static inline void
-j1939_bjm_set_y_position(struct j1939_bjm_packet *packet, uint16_t position)
+static inline void j1939_bjm_set_y_position(struct j1939_bjm_packet *packet, uint16_t position)
 {
-	packet->y_status_pos = (packet->y_status_pos & 0x3f) |
-			       ((position & 0x3) << 6);
+	packet->y_status_pos = (packet->y_status_pos & 0x3f) | ((position & 0x3) << 6);
 	packet->y_pos_msb = (position >> 2) & 0xff;
 }
 
@@ -220,13 +200,12 @@ j1939_bjm_set_y_position(struct j1939_bjm_packet *packet, uint16_t position)
  *
  * Return: Lever travel from neutral in 0.1 % units (0 to 1000)
  */
-static inline uint16_t
-j1939_bjm_get_y_position(const struct j1939_bjm_packet *packet)
+static inline uint16_t j1939_bjm_get_y_position(const struct j1939_bjm_packet *packet)
 {
 	return (packet->y_status_pos >> 6) | (packet->y_pos_msb << 2);
 }
 
-#define J1939_BJM_NUM_BUTTONS				12
+#define J1939_BJM_NUM_BUTTONS 12
 
 /**
  * j1939_bjm_set_button - Set a button pressed status in the packet
@@ -234,9 +213,7 @@ j1939_bjm_get_y_position(const struct j1939_bjm_packet *packet)
  * @button: Button number, 1 to 12
  * @status: Button pressed status
  */
-static inline void
-j1939_bjm_set_button(struct j1939_bjm_packet *packet, unsigned int button,
-		     enum j1939_bjm_status status)
+static inline void j1939_bjm_set_button(struct j1939_bjm_packet *packet, unsigned int button, enum j1939_bjm_status status)
 {
 	unsigned int shift = ((button - 1) % 4) * 2;
 	uint8_t *byte;
@@ -256,9 +233,7 @@ j1939_bjm_set_button(struct j1939_bjm_packet *packet, unsigned int button,
  * Return: Button pressed status, or J1939_BJM_STATUS_NOT_AVAILABLE for an
  *	   out of range button number
  */
-static inline enum j1939_bjm_status
-j1939_bjm_get_button(const struct j1939_bjm_packet *packet,
-		     unsigned int button)
+static inline enum j1939_bjm_status j1939_bjm_get_button(const struct j1939_bjm_packet *packet, unsigned int button)
 {
 	unsigned int shift = ((button - 1) % 4) * 2;
 	const uint8_t *byte;

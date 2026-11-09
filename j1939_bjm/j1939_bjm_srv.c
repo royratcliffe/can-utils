@@ -16,13 +16,13 @@
 
 #include "j1939_bjm_cmn.h"
 
-#define J1939_BJM_SRV_MAX_EPOLL_EVENTS	10
+#define J1939_BJM_SRV_MAX_EPOLL_EVENTS 10
 
 /* Lever travel below this fraction of full scale counts as neutral */
-#define J1939_BJM_SRV_DEADBAND		1024 /* ~3 % of 32767 */
+#define J1939_BJM_SRV_DEADBAND 1024 /* ~3 % of 32767 */
 
-#define J1939_BJM_SRV_JOY1_DEFAULT	"/dev/input/js0"
-#define J1939_BJM_SRV_JOY2_DEFAULT	"/dev/input/js1"
+#define J1939_BJM_SRV_JOY1_DEFAULT "/dev/input/js0"
+#define J1939_BJM_SRV_JOY2_DEFAULT "/dev/input/js1"
 
 enum j1939_bjm_joy_state {
 	J1939_BJM_JOY_ABSENT, /* no device configured or attached */
@@ -116,8 +116,7 @@ static void simulate_joystick_data(struct j1939_bjm_srv_priv *priv)
  *
  * Return: 0 on success, negative error code on failure.
  */
-static int j1939_bjm_joy_open(struct j1939_bjm_srv_priv *priv,
-			      struct j1939_bjm_joystick *joy)
+static int j1939_bjm_joy_open(struct j1939_bjm_srv_priv *priv, struct j1939_bjm_joystick *joy)
 {
 	int ret, fd;
 
@@ -125,19 +124,16 @@ static int j1939_bjm_joy_open(struct j1939_bjm_srv_priv *priv,
 	if (fd < 0)
 		return -errno;
 
-	if (ioctl(fd, JSIOCGAXES, &joy->num_axes) < 0 ||
-	    ioctl(fd, JSIOCGBUTTONS, &joy->num_buttons) < 0) {
+	if (ioctl(fd, JSIOCGAXES, &joy->num_axes) < 0 || ioctl(fd, JSIOCGBUTTONS, &joy->num_buttons) < 0) {
 		ret = -errno;
-		pr_err("%s: failed to query joystick properties: %d (%s)\n",
-		       joy->path, ret, strerror(-ret));
+		pr_err("%s: failed to query joystick properties: %d (%s)\n", joy->path, ret, strerror(-ret));
 		close(fd);
 		return ret;
 	}
 
 	ret = libj1939_add_socket_to_epoll(priv->cmn.epoll_fd, fd, EPOLLIN);
 	if (ret < 0) {
-		pr_err("%s: failed to add joystick to epoll: %d\n",
-		       joy->path, ret);
+		pr_err("%s: failed to add joystick to epoll: %d\n", joy->path, ret);
 		close(fd);
 		return ret;
 	}
@@ -145,8 +141,7 @@ static int j1939_bjm_joy_open(struct j1939_bjm_srv_priv *priv,
 	joy->fd = fd;
 	joy->state = J1939_BJM_JOY_OK;
 
-	pr_info("%s: joystick attached with %u axes and %u buttons\n",
-		joy->path, joy->num_axes, joy->num_buttons);
+	pr_info("%s: joystick attached with %u axes and %u buttons\n", joy->path, joy->num_axes, joy->num_buttons);
 
 	return 0;
 }
@@ -160,8 +155,7 @@ static int j1939_bjm_joy_open(struct j1939_bjm_srv_priv *priv,
  * at runtime and flags the slot as being in error, so the corresponding
  * BJM message reports error statuses instead of stale data.
  */
-static void j1939_bjm_joy_lost(struct j1939_bjm_srv_priv *priv,
-			       struct j1939_bjm_joystick *joy)
+static void j1939_bjm_joy_lost(struct j1939_bjm_srv_priv *priv, struct j1939_bjm_joystick *joy)
 {
 	pr_warn("%s: joystick lost\n", joy->path);
 
@@ -183,8 +177,7 @@ static void j1939_bjm_joy_lost(struct j1939_bjm_srv_priv *priv,
  *
  * Return: 0 on success, negative error code on failure.
  */
-static int j1939_bjm_joy_rx(struct j1939_bjm_srv_priv *priv,
-			    struct j1939_bjm_joystick *joy)
+static int j1939_bjm_joy_rx(struct j1939_bjm_srv_priv *priv, struct j1939_bjm_joystick *joy)
 {
 	struct js_event ev;
 	ssize_t ret;
@@ -201,8 +194,7 @@ static int j1939_bjm_joy_rx(struct j1939_bjm_srv_priv *priv,
 		}
 
 		if (ret != sizeof(ev)) {
-			pr_warn("%s: short joystick event read: %zi\n",
-				joy->path, ret);
+			pr_warn("%s: short joystick event read: %zi\n", joy->path, ret);
 			return -EIO;
 		}
 
@@ -244,10 +236,7 @@ static int j1939_bjm_joy_rx(struct j1939_bjm_srv_priv *priv,
  *
  * Return: Lever travel from neutral in 0.1 % units (0 to 1000).
  */
-static uint16_t j1939_bjm_axis_fill(int16_t value,
-				    enum j1939_bjm_status *neutral,
-				    enum j1939_bjm_status *negative,
-				    enum j1939_bjm_status *positive)
+static uint16_t j1939_bjm_axis_fill(int16_t value, enum j1939_bjm_status *neutral, enum j1939_bjm_status *negative, enum j1939_bjm_status *positive)
 {
 	int32_t magnitude = value < 0 ? -(int32_t)value : value;
 
@@ -279,9 +268,7 @@ static uint16_t j1939_bjm_axis_fill(int16_t value,
  *
  * Return: 0 on success.
  */
-static int j1939_bjm_get_data(struct j1939_bjm_srv_priv *priv,
-			      struct j1939_bjm_joystick *joy,
-			      struct j1939_bjm_packet *bjmp)
+static int j1939_bjm_get_data(struct j1939_bjm_srv_priv *priv, struct j1939_bjm_joystick *joy, struct j1939_bjm_packet *bjmp)
 {
 	enum j1939_bjm_status neutral, negative, positive;
 	enum j1939_bjm_status fail_status;
@@ -289,14 +276,11 @@ static int j1939_bjm_get_data(struct j1939_bjm_srv_priv *priv,
 	unsigned int i;
 
 	if (joy->state != J1939_BJM_JOY_OK) {
-		fail_status = joy->state == J1939_BJM_JOY_ERROR ?
-			J1939_BJM_STATUS_ERROR : J1939_BJM_STATUS_NOT_AVAILABLE;
+		fail_status = joy->state == J1939_BJM_JOY_ERROR ? J1939_BJM_STATUS_ERROR : J1939_BJM_STATUS_NOT_AVAILABLE;
 
-		j1939_bjm_set_x_statuses(bjmp, fail_status, fail_status,
-					 fail_status);
+		j1939_bjm_set_x_statuses(bjmp, fail_status, fail_status, fail_status);
 		j1939_bjm_set_x_position(bjmp, J1939_BJM_POSITION_NOT_AVAILABLE);
-		j1939_bjm_set_y_statuses(bjmp, fail_status, fail_status,
-					 fail_status);
+		j1939_bjm_set_y_statuses(bjmp, fail_status, fail_status, fail_status);
 		j1939_bjm_set_y_position(bjmp, J1939_BJM_POSITION_NOT_AVAILABLE);
 		for (i = 1; i <= J1939_BJM_NUM_BUTTONS; ++i)
 			j1939_bjm_set_button(bjmp, i, fail_status);
@@ -307,26 +291,20 @@ static int j1939_bjm_get_data(struct j1939_bjm_srv_priv *priv,
 	}
 
 	if (joy->num_axes >= 1) {
-		position = j1939_bjm_axis_fill(joy->x, &neutral, &negative,
-					       &positive);
+		position = j1939_bjm_axis_fill(joy->x, &neutral, &negative, &positive);
 		j1939_bjm_set_x_statuses(bjmp, neutral, negative, positive);
 		j1939_bjm_set_x_position(bjmp, position);
 	} else {
-		j1939_bjm_set_x_statuses(bjmp, J1939_BJM_STATUS_NOT_AVAILABLE,
-					 J1939_BJM_STATUS_NOT_AVAILABLE,
-					 J1939_BJM_STATUS_NOT_AVAILABLE);
+		j1939_bjm_set_x_statuses(bjmp, J1939_BJM_STATUS_NOT_AVAILABLE, J1939_BJM_STATUS_NOT_AVAILABLE, J1939_BJM_STATUS_NOT_AVAILABLE);
 		j1939_bjm_set_x_position(bjmp, J1939_BJM_POSITION_NOT_AVAILABLE);
 	}
 
 	if (joy->num_axes >= 2) {
-		position = j1939_bjm_axis_fill(joy->y, &neutral, &negative,
-					       &positive);
+		position = j1939_bjm_axis_fill(joy->y, &neutral, &negative, &positive);
 		j1939_bjm_set_y_statuses(bjmp, neutral, negative, positive);
 		j1939_bjm_set_y_position(bjmp, position);
 	} else {
-		j1939_bjm_set_y_statuses(bjmp, J1939_BJM_STATUS_NOT_AVAILABLE,
-					 J1939_BJM_STATUS_NOT_AVAILABLE,
-					 J1939_BJM_STATUS_NOT_AVAILABLE);
+		j1939_bjm_set_y_statuses(bjmp, J1939_BJM_STATUS_NOT_AVAILABLE, J1939_BJM_STATUS_NOT_AVAILABLE, J1939_BJM_STATUS_NOT_AVAILABLE);
 		j1939_bjm_set_y_position(bjmp, J1939_BJM_POSITION_NOT_AVAILABLE);
 	}
 
@@ -377,31 +355,27 @@ static int j1939_bjm2_prepare_data(struct j1939_bjm_srv_priv *priv, void *data)
  *
  * Return: 0 on success or a negative error code if an issue occurs.
  */
-static int prepare_and_send_message(struct j1939_bjm_srv_priv *priv,
-				    struct j1939_pgn_handler *handler)
+static int prepare_and_send_message(struct j1939_bjm_srv_priv *priv, struct j1939_pgn_handler *handler)
 {
 	uint8_t data[J1939_BJM_MAX_TRANSFER_LENGTH];
 	int ret;
 
 	if (sizeof(data) < handler->data_size) {
-		pr_warn("Data buffer too small for PGN %u: %zu < %zu\n",
-			handler->pgn, sizeof(data), handler->data_size);
+		pr_warn("Data buffer too small for PGN %u: %zu < %zu\n", handler->pgn, sizeof(data), handler->data_size);
 		return -EINVAL;
 	}
 
 	memset(data, 0, handler->data_size);
 	ret = handler->prepare_data(priv, data);
 	if (ret < 0) {
-		pr_warn("Failed to prepare data for PGN %u: %i\n",
-			handler->pgn, ret);
+		pr_warn("Failed to prepare data for PGN %u: %i\n", handler->pgn, ret);
 		return ret;
 	}
 
 	ret = send(handler->sock, data, handler->data_size, MSG_DONTWAIT);
 	if (ret == -1) {
 		ret = -errno;
-		pr_warn("Failed to send data for PGN %u: %i (%s)\n",
-			handler->pgn, ret, strerror(-ret));
+		pr_warn("Failed to send data for PGN %u: %i (%s)\n", handler->pgn, ret, strerror(-ret));
 		return ret;
 	}
 
@@ -419,11 +393,9 @@ static int prepare_and_send_message(struct j1939_bjm_srv_priv *priv,
  *
  * Return: 0 on success or a negative error code if an issue occurs.
  */
-static int j1939_bjm_srv_process_pgn_request(struct j1939_bjm_srv_priv *priv,
-					     struct j1939_bjm_msg *msg)
+static int j1939_bjm_srv_process_pgn_request(struct j1939_bjm_srv_priv *priv, struct j1939_bjm_msg *msg)
 {
-	uint32_t requested_pgn = (msg->buf[2] << 16) | (msg->buf[1] << 8) |
-				  msg->buf[0];
+	uint32_t requested_pgn = (msg->buf[2] << 16) | (msg->buf[1] << 8) | msg->buf[0];
 	int ret = -EINVAL;
 
 	/* Iterate over all handlers to find the appropriate PGN */
@@ -441,8 +413,7 @@ static int j1939_bjm_srv_process_pgn_request(struct j1939_bjm_srv_priv *priv,
 
 		ret = prepare_and_send_message(priv, handler);
 		if (ret < 0) {
-			pr_warn("Handler for PGN %u returned error %d\n",
-				handler->pgn, ret);
+			pr_warn("Handler for PGN %u returned error %d\n", handler->pgn, ret);
 		}
 		return ret;
 	}
@@ -463,8 +434,7 @@ static int j1939_bjm_srv_process_pgn_request(struct j1939_bjm_srv_priv *priv,
  *
  * Return: 0 on success or a negative error code if an issue occurs.
  */
-static int j1939_bjm_srv_rx_buf(struct j1939_bjm_srv_priv *priv,
-				struct j1939_bjm_msg *msg)
+static int j1939_bjm_srv_rx_buf(struct j1939_bjm_srv_priv *priv, struct j1939_bjm_msg *msg)
 {
 	pgn_t pgn = msg->peername.can_addr.j1939.pgn;
 	int ret = 0;
@@ -494,7 +464,7 @@ static int j1939_bjm_srv_rx_buf(struct j1939_bjm_srv_priv *priv,
  */
 static int j1939_bjm_srv_rx_one(struct j1939_bjm_srv_priv *priv, int sock)
 {
-	struct j1939_bjm_msg msg = {0};
+	struct j1939_bjm_msg msg = { 0 };
 	int flags = 0;
 	int ret;
 
@@ -502,8 +472,7 @@ static int j1939_bjm_srv_rx_one(struct j1939_bjm_srv_priv *priv, int sock)
 	msg.peer_addr_len = sizeof(msg.peername);
 	msg.sock = sock;
 
-	ret = recvfrom(sock, &msg.buf[0], msg.buf_size, flags,
-		       (struct sockaddr *)&msg.peername, &msg.peer_addr_len);
+	ret = recvfrom(sock, &msg.buf[0], msg.buf_size, flags, (struct sockaddr *)&msg.peername, &msg.peer_addr_len);
 
 	if (ret < 0) {
 		ret = -errno;
@@ -520,8 +489,7 @@ static int j1939_bjm_srv_rx_one(struct j1939_bjm_srv_priv *priv, int sock)
 
 	ret = j1939_bjm_srv_rx_buf(priv, &msg);
 	if (ret < 0) {
-		pr_warn("failed to process rx buf: %i (%s)\n", ret,
-			strerror(ret));
+		pr_warn("failed to process rx buf: %i (%s)\n", ret, strerror(ret));
 		return ret;
 	}
 
@@ -539,8 +507,7 @@ static int j1939_bjm_srv_rx_one(struct j1939_bjm_srv_priv *priv, int sock)
  *
  * Return: 0 on success or a negative error code if an issue occurs.
  */
-static int j1939_bjm_srv_handle_events(struct j1939_bjm_srv_priv *priv,
-				       unsigned int nfds)
+static int j1939_bjm_srv_handle_events(struct j1939_bjm_srv_priv *priv, unsigned int nfds)
 {
 	unsigned int n;
 	int ret;
@@ -564,8 +531,7 @@ static int j1939_bjm_srv_handle_events(struct j1939_bjm_srv_priv *priv,
 		if (joy) {
 			ret = j1939_bjm_joy_rx(priv, joy);
 			if (ret) {
-				pr_warn("failed to read joystick events: %i (%s)\n",
-					ret, strerror(-ret));
+				pr_warn("failed to read joystick events: %i (%s)\n", ret, strerror(-ret));
 				/* Keep broadcasting error statuses */
 			}
 			continue;
@@ -591,10 +557,9 @@ static int j1939_bjm_srv_handle_events(struct j1939_bjm_srv_priv *priv,
  *
  * Return: the earliest time as a struct timespec.
  */
-static struct timespec
-determine_earliest_next_send_time(struct j1939_bjm_srv_priv *priv)
+static struct timespec determine_earliest_next_send_time(struct j1939_bjm_srv_priv *priv)
 {
-	struct timespec earliest = {0, 0};
+	struct timespec earliest = { 0, 0 };
 
 	for (size_t i = 0; i < priv->num_handlers; ++i) {
 		if (!priv->handlers[i].enabled)
@@ -603,9 +568,7 @@ determine_earliest_next_send_time(struct j1939_bjm_srv_priv *priv)
 		if (earliest.tv_sec == 0 && earliest.tv_nsec == 0)
 			earliest = priv->handlers[i].next_time;
 
-		if ((priv->handlers[i].next_time.tv_sec < earliest.tv_sec) ||
-		    (priv->handlers[i].next_time.tv_sec == earliest.tv_sec &&
-		     priv->handlers[i].next_time.tv_nsec < earliest.tv_nsec))
+		if ((priv->handlers[i].next_time.tv_sec < earliest.tv_sec) || (priv->handlers[i].next_time.tv_sec == earliest.tv_sec && priv->handlers[i].next_time.tv_nsec < earliest.tv_nsec))
 			earliest = priv->handlers[i].next_time;
 	}
 
@@ -624,8 +587,7 @@ determine_earliest_next_send_time(struct j1939_bjm_srv_priv *priv)
  *
  * Returns 0 on success or a negative error code if an issue occurs.
  */
-static int send_message_for_handler(struct j1939_bjm_srv_priv *priv,
-				    struct j1939_pgn_handler *handler)
+static int send_message_for_handler(struct j1939_bjm_srv_priv *priv, struct j1939_pgn_handler *handler)
 {
 	int64_t time_diff;
 	int ret;
@@ -665,8 +627,7 @@ static int send_periodic_messages(struct j1939_bjm_srv_priv *priv)
 	for (size_t i = 0; i < priv->num_handlers; ++i) {
 		ret = send_message_for_handler(priv, &priv->handlers[i]);
 		if (ret < 0) {
-			pr_warn("Failed to send periodic message for handler %zu. Error: %d (%s)\n",
-				i, ret, strerror(-ret));
+			pr_warn("Failed to send periodic message for handler %zu. Error: %d (%s)\n", i, ret, strerror(-ret));
 		}
 	}
 
@@ -684,8 +645,7 @@ static int send_periodic_messages(struct j1939_bjm_srv_priv *priv)
  *
  * Return: 0 on success or a negative error code if an issue occurs.
  */
-static int
-j1939_bjm_srv_process_events_and_tasks(struct j1939_bjm_srv_priv *priv)
+static int j1939_bjm_srv_process_events_and_tasks(struct j1939_bjm_srv_priv *priv)
 {
 	int64_t time_diff;
 	int ret, nfds;
@@ -693,19 +653,16 @@ j1939_bjm_srv_process_events_and_tasks(struct j1939_bjm_srv_priv *priv)
 	priv->cmn.next_send_time = determine_earliest_next_send_time(priv);
 	ret = libj1939_prepare_for_events(&priv->cmn, &nfds, false);
 	if (ret)
-		pr_err("failed to prepare for events: %i (%s)\n", ret,
-		       strerror(-ret));
+		pr_err("failed to prepare for events: %i (%s)\n", ret, strerror(-ret));
 
 	if (!ret && nfds > 0) {
 		ret = j1939_bjm_srv_handle_events(priv, nfds);
 		if (ret)
-			pr_err("failed to handle events: %i (%s)\n", ret,
-			       strerror(-ret));
+			pr_err("failed to handle events: %i (%s)\n", ret, strerror(-ret));
 	}
 
 	/* Test if it is proper time to send next status message. */
-	time_diff = timespec_diff_ms(&priv->cmn.next_send_time,
-				     &priv->cmn.last_time);
+	time_diff = timespec_diff_ms(&priv->cmn.next_send_time, &priv->cmn.last_time);
 	if (time_diff > 0) {
 		/* Too early to send next message */
 		return 0;
@@ -749,16 +706,14 @@ static struct j1939_pgn_handler pgn_handlers[] = {
  *
  * Return: 0 on success or a negative error code if an issue occurs.
  */
-static int initialize_socket_for_handler(struct j1939_bjm_srv_priv *priv,
-					 struct j1939_pgn_handler *handler)
+static int initialize_socket_for_handler(struct j1939_bjm_srv_priv *priv, struct j1939_pgn_handler *handler)
 {
 	struct sockaddr_can addr = priv->sockname;
 	int ret;
 
 	ret = libj1939_open_socket();
 	if (ret < 0) {
-		pr_err("Failed to open socket for PGN %u: %d\n",
-		       handler->pgn, ret);
+		pr_err("Failed to open socket for PGN %u: %d\n", handler->pgn, ret);
 		return ret;
 	}
 
@@ -766,22 +721,19 @@ static int initialize_socket_for_handler(struct j1939_bjm_srv_priv *priv,
 
 	ret = libj1939_bind_socket(handler->sock, &addr);
 	if (ret < 0) {
-		pr_err("Failed to bind socket for PGN %u: %d\n",
-		       handler->pgn, ret);
+		pr_err("Failed to bind socket for PGN %u: %d\n", handler->pgn, ret);
 		return ret;
 	}
 
 	ret = libj1939_socket_prio(handler->sock, handler->sock_priority);
 	if (ret < 0) {
-		pr_err("Failed to set socket priority for PGN %u: %d\n",
-		       handler->pgn, ret);
+		pr_err("Failed to set socket priority for PGN %u: %d\n", handler->pgn, ret);
 		return ret;
 	}
 
 	ret = libj1939_set_broadcast(handler->sock);
 	if (ret < 0) {
-		pr_err("Failed to set broadcast for PGN %u: %d\n",
-		       handler->pgn, ret);
+		pr_err("Failed to set broadcast for PGN %u: %d\n", handler->pgn, ret);
 		return ret;
 	}
 
@@ -790,16 +742,13 @@ static int initialize_socket_for_handler(struct j1939_bjm_srv_priv *priv,
 	addr.can_addr.j1939.pgn = handler->pgn;
 	ret = libj1939_connect_socket(handler->sock, &addr);
 	if (ret < 0) {
-		pr_err("Failed to connect socket for PGN %u: %d\n",
-		       handler->pgn, ret);
+		pr_err("Failed to connect socket for PGN %u: %d\n", handler->pgn, ret);
 		return ret;
 	}
 
-	ret = libj1939_add_socket_to_epoll(priv->cmn.epoll_fd, handler->sock,
-					   EPOLLIN);
+	ret = libj1939_add_socket_to_epoll(priv->cmn.epoll_fd, handler->sock, EPOLLIN);
 	if (ret < 0) {
-		pr_err("Failed to add socket to epoll for PGN %u: %d\n",
-		       handler->pgn, ret);
+		pr_err("Failed to add socket to epoll for PGN %u: %d\n", handler->pgn, ret);
 		return ret;
 	}
 
@@ -831,8 +780,7 @@ static int j1939_bjm_srv_init(struct j1939_bjm_srv_priv *priv)
 	}
 
 	priv->cmn.epoll_fd = ret;
-	priv->cmn.epoll_events = calloc(J1939_BJM_SRV_MAX_EPOLL_EVENTS,
-					sizeof(struct epoll_event));
+	priv->cmn.epoll_events = calloc(J1939_BJM_SRV_MAX_EPOLL_EVENTS, sizeof(struct epoll_event));
 	if (!priv->cmn.epoll_events) {
 		pr_err("Failed to allocate memory for epoll events\n");
 		return -ENOMEM;
@@ -842,8 +790,7 @@ static int j1939_bjm_srv_init(struct j1939_bjm_srv_priv *priv)
 	ret = clock_gettime(CLOCK_MONOTONIC, &ts);
 	if (ret < 0) {
 		ret = -errno;
-		pr_err("Failed to get current time: %d (%s)\n", ret,
-		       strerror(-ret));
+		pr_err("Failed to get current time: %d (%s)\n", ret, strerror(-ret));
 		return ret;
 	}
 
@@ -858,12 +805,10 @@ static int j1939_bjm_srv_init(struct j1939_bjm_srv_priv *priv)
 		ret = j1939_bjm_joy_open(priv, joy);
 		if (ret < 0) {
 			if (joy->explicit_path) {
-				pr_err("%s: failed to open joystick: %d (%s)\n",
-				       joy->path, ret, strerror(-ret));
+				pr_err("%s: failed to open joystick: %d (%s)\n", joy->path, ret, strerror(-ret));
 				return ret;
 			}
-			pr_info("%s: no joystick attached, BJM%zu disabled\n",
-				joy->path, i + 1);
+			pr_info("%s: no joystick attached, BJM%zu disabled\n", joy->path, i + 1);
 			continue;
 		}
 
@@ -882,15 +827,13 @@ static int j1939_bjm_srv_init(struct j1939_bjm_srv_priv *priv)
 		struct j1939_pgn_handler *handler = &priv->handlers[i];
 
 		handler->sock = -1;
-		handler->enabled = priv->sim_mode ||
-			priv->joy[handler->joy_index].state == J1939_BJM_JOY_OK;
+		handler->enabled = priv->sim_mode || priv->joy[handler->joy_index].state == J1939_BJM_JOY_OK;
 		if (!handler->enabled)
 			continue;
 
 		ret = initialize_socket_for_handler(priv, handler);
 		if (ret < 0) {
-			pr_err("Failed to initialize socket for handler %zu: %d\n",
-			       i, ret);
+			pr_err("Failed to initialize socket for handler %zu: %d\n", i, ret);
 			return ret;
 		}
 
@@ -928,11 +871,9 @@ static void j1939_bjm_srv_print_help(void)
 	printf("      must be provided.\n");
 	printf("\n");
 	printf("  --joy1 <device_path> or -1 <device_path>\n");
-	printf("      Joystick device broadcast as BJM1. Default: %s\n",
-	       J1939_BJM_SRV_JOY1_DEFAULT);
+	printf("      Joystick device broadcast as BJM1. Default: %s\n", J1939_BJM_SRV_JOY1_DEFAULT);
 	printf("  --joy2 <device_path> or -2 <device_path>\n");
-	printf("      Joystick device broadcast as BJM2. Default: %s\n",
-	       J1939_BJM_SRV_JOY2_DEFAULT);
+	printf("      Joystick device broadcast as BJM2. Default: %s\n", J1939_BJM_SRV_JOY2_DEFAULT);
 	printf("\n");
 	printf("Note: A default joystick device that is not attached merely disables\n");
 	printf("      the corresponding BJM message; an explicitly given device that\n");
@@ -965,8 +906,7 @@ static void j1939_bjm_srv_print_help(void)
  *
  * Return: 0 on success or a negative error code if an issue occurs.
  */
-static int j1939_bjm_srv_parse_args(struct j1939_bjm_srv_priv *priv,
-				    int argc, char *argv[])
+static int j1939_bjm_srv_parse_args(struct j1939_bjm_srv_priv *priv, int argc, char *argv[])
 {
 	struct sockaddr_can *local = &priv->sockname;
 	bool local_address_set = false;
@@ -975,18 +915,15 @@ static int j1939_bjm_srv_parse_args(struct j1939_bjm_srv_priv *priv,
 	int long_index = 0;
 	int opt;
 
-	static struct option long_options[] = {
-		{"interface", required_argument, 0, 'i'},
-		{"local-address", required_argument, 0, 'a'},
-		{"local-name", required_argument, 0, 'n'},
-		{"joy1", required_argument, 0, '1'},
-		{"joy2", required_argument, 0, '2'},
-		{"sim-mode", no_argument, 0, 's'},
-		{0, 0, 0, 0}
-	};
+	static struct option long_options[] = { { "interface", required_argument, 0, 'i' },
+						{ "local-address", required_argument, 0, 'a' },
+						{ "local-name", required_argument, 0, 'n' },
+						{ "joy1", required_argument, 0, '1' },
+						{ "joy2", required_argument, 0, '2' },
+						{ "sim-mode", no_argument, 0, 's' },
+						{ 0, 0, 0, 0 } };
 
-	while ((opt = getopt_long(argc, argv, "a:n:i:1:2:s", long_options,
-				  &long_index)) != -1) {
+	while ((opt = getopt_long(argc, argv, "a:n:i:1:2:s", long_options, &long_index)) != -1) {
 		switch (opt) {
 		case 'a':
 			local->can_addr.j1939.addr = strtoul(optarg, NULL, 16);
@@ -999,8 +936,7 @@ static int j1939_bjm_srv_parse_args(struct j1939_bjm_srv_priv *priv,
 		case 'i':
 			local->can_ifindex = if_nametoindex(optarg);
 			if (!local->can_ifindex) {
-				pr_err("Interface %s not found. Error: %d (%s)\n",
-				       optarg, -errno, strerror(errno));
+				pr_err("Interface %s not found. Error: %d (%s)\n", optarg, -errno, strerror(errno));
 				return -EINVAL;
 			}
 			interface_set = true;
@@ -1119,8 +1055,7 @@ int main(int argc, char *argv[])
 		 * slow down to avoid busy loop. So, we sleep for a while.
 		 */
 		if (ret) {
-			pr_warn("failed to process events and tasks: %i (%s). Sleeping for a while\n",
-				ret, strerror(-ret));
+			pr_warn("failed to process events and tasks: %i (%s). Sleeping for a while\n", ret, strerror(-ret));
 			sleep(1);
 		}
 	}
