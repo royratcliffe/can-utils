@@ -91,12 +91,10 @@ enum j1939_bjm_status {
  *
  * @y_pos_msb: Joystick Y-Axis Position, 8 MSBs (SPN 1799 / 1819)
  *
- * @buttons_1_4: Button 1 to 4 Pressed Status, 2 bits each
- *           (SPNs 1800-1803 / 1820-1823)
- * @buttons_5_8: Button 5 to 8 Pressed Status, 2 bits each
- *           (SPNs 1804-1807 / 1824-1827)
- * @buttons_9_12: Button 9 to 12 Pressed Status, 2 bits each
- *           (SPNs 1808-1811 / 1828-1831)
+ * @buttons: Button 1 to 12 Pressed Status, 2 bits each, 4 buttons per byte
+ *           - Byte 0: Buttons 1 to 4 (SPNs 1800-1803 / 1820-1823)
+ *           - Byte 1: Buttons 5 to 8 (SPNs 1804-1807 / 1824-1827)
+ *           - Byte 2: Buttons 9 to 12 (SPNs 1808-1811 / 1828-1831)
  *
  * @reserved: Not assigned, must be set to 0xFF as per J1939-71, section 5.2
  *
@@ -109,9 +107,7 @@ struct j1939_bjm_packet {
 	uint8_t x_pos_msb;
 	uint8_t y_status_pos;
 	uint8_t y_pos_msb;
-	uint8_t buttons_1_4;
-	uint8_t buttons_5_8;
-	uint8_t buttons_9_12;
+	uint8_t buttons[3];
 	uint8_t reserved;
 } __attribute__((__packed__));
 
@@ -221,7 +217,7 @@ static inline void j1939_bjm_set_button(struct j1939_bjm_packet *packet, unsigne
 	if (button < 1 || button > J1939_BJM_NUM_BUTTONS)
 		return;
 
-	byte = &packet->buttons_1_4 + (button - 1) / 4;
+	byte = &packet->buttons[(button - 1) / 4];
 	*byte = (*byte & ~(0x3 << shift)) | ((status & 0x3) << shift);
 }
 
@@ -241,7 +237,7 @@ static inline enum j1939_bjm_status j1939_bjm_get_button(const struct j1939_bjm_
 	if (button < 1 || button > J1939_BJM_NUM_BUTTONS)
 		return J1939_BJM_STATUS_NOT_AVAILABLE;
 
-	byte = &packet->buttons_1_4 + (button - 1) / 4;
+	byte = &packet->buttons[(button - 1) / 4];
 	return (*byte >> shift) & 0x3;
 }
 
