@@ -22,7 +22,7 @@
 
 #include "isobus_hrtbtm_cmn.h"
 
-#define ISOBUS_HRTBTM_MON_MAX_SRC	256
+#define ISOBUS_HRTBTM_MON_MAX_SRC 256
 
 struct isobus_hrtbtm_mon_src {
 	bool active;
@@ -50,10 +50,7 @@ struct isobus_hrtbtm_mon_priv {
  * printing each message with its interval and warning when the sequence
  * counter skips, repeats or resumes after a timeout.
  */
-static void isobus_hrtbtm_mon_process_one(struct isobus_hrtbtm_mon_priv *priv,
-					  const struct sockaddr_can *peername,
-					  const struct isobus_hrtbtm_packet *hbp,
-					  struct timespec *now)
+static void isobus_hrtbtm_mon_process_one(struct isobus_hrtbtm_mon_priv *priv, const struct sockaddr_can *peername, const struct isobus_hrtbtm_packet *hbp, struct timespec *now)
 {
 	uint8_t sa = peername->can_addr.j1939.addr;
 	struct isobus_hrtbtm_mon_src *src = &priv->srcs[sa];
@@ -66,29 +63,22 @@ static void isobus_hrtbtm_mon_process_one(struct isobus_hrtbtm_mon_priv *priv,
 		interval = timespec_diff_ms(now, &src->last_time);
 
 		if (!priv->quiet)
-			pr_info("SA 0x%02X: heartbeat seq %3u, interval %4lli ms\n",
-				sa, seq, (long long)interval);
+			pr_info("SA 0x%02X: heartbeat seq %3u, interval %4lli ms\n", sa, seq, (long long)interval);
 
 		if (seq > ISOBUS_HRTBTM_SEQ_MAX) {
-			pr_warn("SA 0x%02X: reserved sequence value %u\n",
-				sa, seq);
+			pr_warn("SA 0x%02X: reserved sequence value %u\n", sa, seq);
 		} else {
-			expected = (src->last_seq + 1) %
-				ISOBUS_HRTBTM_SEQ_MODULO;
+			expected = (src->last_seq + 1) % ISOBUS_HRTBTM_SEQ_MODULO;
 			if (seq != expected) {
 				unsigned int missed;
 
-				missed = (seq + ISOBUS_HRTBTM_SEQ_MODULO -
-					  src->last_seq - 1) %
-					ISOBUS_HRTBTM_SEQ_MODULO;
-				pr_warn("SA 0x%02X: sequence gap, expected %u, got %u (%u missed)\n",
-					sa, expected, seq, missed);
+				missed = (seq + ISOBUS_HRTBTM_SEQ_MODULO - src->last_seq - 1) % ISOBUS_HRTBTM_SEQ_MODULO;
+				pr_warn("SA 0x%02X: sequence gap, expected %u, got %u (%u missed)\n", sa, expected, seq, missed);
 			}
 		}
 
 		if (interval > priv->timeout_ms)
-			pr_warn("SA 0x%02X: heartbeat interval %lli ms exceeds timeout of %i ms\n",
-				sa, (long long)interval, priv->timeout_ms);
+			pr_warn("SA 0x%02X: heartbeat interval %lli ms exceeds timeout of %i ms\n", sa, (long long)interval, priv->timeout_ms);
 	} else {
 		pr_info("SA 0x%02X: heartbeat detected, seq %u\n", sa, seq);
 	}
@@ -108,8 +98,7 @@ static void isobus_hrtbtm_mon_process_one(struct isobus_hrtbtm_mon_priv *priv,
  * has not been seen within the configured timeout and stops tracking it
  * until it reappears.
  */
-static void isobus_hrtbtm_mon_check_timeouts(struct isobus_hrtbtm_mon_priv *priv,
-					     struct timespec *now)
+static void isobus_hrtbtm_mon_check_timeouts(struct isobus_hrtbtm_mon_priv *priv, struct timespec *now)
 {
 	for (size_t sa = 0; sa < ARRAY_SIZE(priv->srcs); sa++) {
 		struct isobus_hrtbtm_mon_src *src = &priv->srcs[sa];
@@ -120,8 +109,7 @@ static void isobus_hrtbtm_mon_check_timeouts(struct isobus_hrtbtm_mon_priv *priv
 
 		silence = timespec_diff_ms(now, &src->last_time);
 		if (silence > priv->timeout_ms) {
-			pr_warn("SA 0x%02zX: heartbeat lost, no message for %lli ms (last seq %u)\n",
-				sa, (long long)silence, src->last_seq);
+			pr_warn("SA 0x%02zX: heartbeat lost, no message for %lli ms (last seq %u)\n", sa, (long long)silence, src->last_seq);
 			src->active = false;
 		}
 	}
@@ -141,8 +129,7 @@ static int isobus_hrtbtm_mon_rx_one(struct isobus_hrtbtm_mon_priv *priv)
 	struct timespec now;
 	int ret;
 
-	ret = recvfrom(priv->sock, &hbp, sizeof(hbp), 0,
-		       (struct sockaddr *)&peername, &peer_addr_len);
+	ret = recvfrom(priv->sock, &hbp, sizeof(hbp), 0, (struct sockaddr *)&peername, &peer_addr_len);
 	if (ret < 0) {
 		ret = -errno;
 		pr_warn("recvfrom() failed: %i (%s)\n", ret, strerror(-ret));
@@ -190,8 +177,7 @@ static int isobus_hrtbtm_mon_run(struct isobus_hrtbtm_mon_priv *priv)
 			ret = -errno;
 			if (ret == -EINTR)
 				continue;
-			pr_err("poll() failed: %i (%s)\n", ret,
-			       strerror(-ret));
+			pr_err("poll() failed: %i (%s)\n", ret, strerror(-ret));
 			return ret;
 		}
 
@@ -204,8 +190,7 @@ static int isobus_hrtbtm_mon_run(struct isobus_hrtbtm_mon_priv *priv)
 		ret = clock_gettime(CLOCK_MONOTONIC, &now);
 		if (ret < 0) {
 			ret = -errno;
-			pr_err("failed to get time: %i (%s)\n", ret,
-			       strerror(-ret));
+			pr_err("failed to get time: %i (%s)\n", ret, strerror(-ret));
 			return ret;
 		}
 
@@ -239,20 +224,17 @@ static int isobus_hrtbtm_mon_sock_prepare(struct isobus_hrtbtm_mon_priv *priv)
 
 	priv->sock = ret;
 
-	ret = setsockopt(priv->sock, SOL_CAN_J1939, SO_J1939_FILTER, &filt,
-			 sizeof(filt));
+	ret = setsockopt(priv->sock, SOL_CAN_J1939, SO_J1939_FILTER, &filt, sizeof(filt));
 	if (ret < 0) {
 		ret = -errno;
 		pr_err("failed to set filter: %i (%s)\n", ret, strerror(-ret));
 		return ret;
 	}
 
-	ret = setsockopt(priv->sock, SOL_CAN_J1939, SO_J1939_PROMISC, &ival_1,
-			 sizeof(ival_1));
+	ret = setsockopt(priv->sock, SOL_CAN_J1939, SO_J1939_PROMISC, &ival_1, sizeof(ival_1));
 	if (ret < 0) {
 		ret = -errno;
-		pr_err("failed to set promiscuous mode: %i (%s)\n", ret,
-		       strerror(-ret));
+		pr_err("failed to set promiscuous mode: %i (%s)\n", ret, strerror(-ret));
 		return ret;
 	}
 
@@ -267,8 +249,7 @@ static void isobus_hrtbtm_mon_print_help(void)
 	printf("      Specifies the CAN interface to use (mandatory).\n");
 	printf("  --timeout <timeout_ms> or -t <timeout_ms>\n");
 	printf("      Heartbeat timeout in milliseconds before a source is\n");
-	printf("      declared lost (default: %u ms).\n",
-	       ISOBUS_HRTBTM_TIMEOUT_MS);
+	printf("      declared lost (default: %u ms).\n", ISOBUS_HRTBTM_TIMEOUT_MS);
 	printf("  --quiet or -q\n");
 	printf("      Only print warnings (sequence gaps, timeouts), not every\n");
 	printf("      received heartbeat.\n");
@@ -277,29 +258,21 @@ static void isobus_hrtbtm_mon_print_help(void)
 	printf("    isobus-hrtbtm-mon -i vcan0\n");
 }
 
-static int isobus_hrtbtm_mon_parse_args(struct isobus_hrtbtm_mon_priv *priv,
-					int argc, char *argv[])
+static int isobus_hrtbtm_mon_parse_args(struct isobus_hrtbtm_mon_priv *priv, int argc, char *argv[])
 {
 	struct sockaddr_can *local = &priv->sockname;
 	bool interface_set = false;
 	int long_index = 0;
 	int opt;
 
-	static struct option long_options[] = {
-		{"interface", required_argument, 0, 'i'},
-		{"timeout", required_argument, 0, 't'},
-		{"quiet", no_argument, 0, 'q'},
-		{0, 0, 0, 0}
-	};
+	static struct option long_options[] = { { "interface", required_argument, 0, 'i' }, { "timeout", required_argument, 0, 't' }, { "quiet", no_argument, 0, 'q' }, { 0, 0, 0, 0 } };
 
-	while ((opt = getopt_long(argc, argv, "i:t:q", long_options,
-				  &long_index)) != -1) {
+	while ((opt = getopt_long(argc, argv, "i:t:q", long_options, &long_index)) != -1) {
 		switch (opt) {
 		case 'i':
 			local->can_ifindex = if_nametoindex(optarg);
 			if (!local->can_ifindex) {
-				pr_err("Interface %s not found. Error: %d (%s)\n",
-				       optarg, errno, strerror(errno));
+				pr_err("Interface %s not found. Error: %d (%s)\n", optarg, errno, strerror(errno));
 				return -EINVAL;
 			}
 			interface_set = true;

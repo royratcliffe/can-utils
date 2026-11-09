@@ -20,24 +20,22 @@
  * for each transmission and wraps from 250 back to 0, allowing receivers
  * to detect missed or repeated messages.
  */
-#define ISOBUS_PGN_HRTBTM				0x0f0e4 /* 61668 */
+#define ISOBUS_PGN_HRTBTM 0x0f0e4 /* 61668 */
 
-#define ISOBUS_HRTBTM_PRIO_DEFAULT			3
-#define ISOBUS_HRTBTM_MAX_TRANSFER_LENGH \
-	sizeof(struct isobus_hrtbtm_packet)
-#define ISOBUS_HRTBTM_REPETITION_RATE_MS		100
+#define ISOBUS_HRTBTM_PRIO_DEFAULT 3
+#define ISOBUS_HRTBTM_MAX_TRANSFER_LENGH sizeof(struct isobus_hrtbtm_packet)
+#define ISOBUS_HRTBTM_REPETITION_RATE_MS 100
 
 /* Sequence counter range is 0..250; values 251..255 are reserved. */
-#define ISOBUS_HRTBTM_SEQ_MAX				250
-#define ISOBUS_HRTBTM_SEQ_MODULO			(ISOBUS_HRTBTM_SEQ_MAX + 1)
+#define ISOBUS_HRTBTM_SEQ_MAX 250
+#define ISOBUS_HRTBTM_SEQ_MODULO (ISOBUS_HRTBTM_SEQ_MAX + 1)
 
 /*
  * A receiver should consider the heartbeat lost if no message arrives
  * within the repetition rate plus a tolerance. Default to three missed
  * cycles before declaring a timeout.
  */
-#define ISOBUS_HRTBTM_TIMEOUT_MS \
-	(3 * ISOBUS_HRTBTM_REPETITION_RATE_MS)
+#define ISOBUS_HRTBTM_TIMEOUT_MS (3 * ISOBUS_HRTBTM_REPETITION_RATE_MS)
 
 /**
  * struct isobus_hrtbtm_packet - ISO 11783-7 Heartbeat message
@@ -48,15 +46,12 @@ struct isobus_hrtbtm_packet {
 	uint8_t sequence_counter;
 } __attribute__((__packed__));
 
-static inline uint8_t
-isobus_hrtbtm_get_sequence_counter(const struct isobus_hrtbtm_packet *packet)
+static inline uint8_t isobus_hrtbtm_get_sequence_counter(const struct isobus_hrtbtm_packet *packet)
 {
 	return packet->sequence_counter;
 }
 
-static inline void
-isobus_hrtbtm_set_sequence_counter(struct isobus_hrtbtm_packet *packet,
-				   uint8_t seq)
+static inline void isobus_hrtbtm_set_sequence_counter(struct isobus_hrtbtm_packet *packet, uint8_t seq)
 {
 	packet->sequence_counter = seq;
 }

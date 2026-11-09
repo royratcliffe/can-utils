@@ -49,8 +49,7 @@ static int isobus_hrtbtm_srv_send_one(struct isobus_hrtbtm_srv_priv *priv)
 	ret = send(priv->sock, &hbp, sizeof(hbp), 0);
 	if (ret == -1) {
 		ret = -errno;
-		pr_warn("failed to send heartbeat: %i (%s)\n", ret,
-			strerror(-ret));
+		pr_warn("failed to send heartbeat: %i (%s)\n", ret, strerror(-ret));
 		return ret;
 	}
 
@@ -96,12 +95,10 @@ static int isobus_hrtbtm_srv_run(struct isobus_hrtbtm_srv_priv *priv)
 		timespec_add_ms(&next_time, priv->repetition_rate_ms);
 
 		do {
-			ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME,
-					      &next_time, NULL);
+			ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_time, NULL);
 		} while (ret == EINTR);
 		if (ret) {
-			pr_err("failed to sleep: %i (%s)\n", -ret,
-			       strerror(ret));
+			pr_err("failed to sleep: %i (%s)\n", -ret, strerror(ret));
 			return -ret;
 		}
 	}
@@ -161,8 +158,7 @@ static void isobus_hrtbtm_srv_print_help(void)
 	printf("      local address is not provided).\n");
 	printf("  --rate <rate_ms> or -r <rate_ms>\n");
 	printf("      Specifies the repetition rate in milliseconds\n");
-	printf("      (default: %u ms as required by ISO 11783-7).\n",
-	       ISOBUS_HRTBTM_REPETITION_RATE_MS);
+	printf("      (default: %u ms as required by ISO 11783-7).\n", ISOBUS_HRTBTM_REPETITION_RATE_MS);
 	printf("  --count <count> or -c <count>\n");
 	printf("      Number of heartbeat messages to send before exiting\n");
 	printf("      (default: 0, send forever).\n");
@@ -181,8 +177,7 @@ static void isobus_hrtbtm_srv_print_help(void)
 	printf("    isobus-hrtbtm-srv -i vcan0 -n 0x1122334455667789\n");
 }
 
-static int isobus_hrtbtm_srv_parse_args(struct isobus_hrtbtm_srv_priv *priv,
-					int argc, char *argv[])
+static int isobus_hrtbtm_srv_parse_args(struct isobus_hrtbtm_srv_priv *priv, int argc, char *argv[])
 {
 	struct sockaddr_can *local = &priv->sockname;
 	bool local_address_set = false;
@@ -191,18 +186,15 @@ static int isobus_hrtbtm_srv_parse_args(struct isobus_hrtbtm_srv_priv *priv,
 	int long_index = 0;
 	int opt;
 
-	static struct option long_options[] = {
-		{"interface", required_argument, 0, 'i'},
-		{"local-address", required_argument, 0, 'a'},
-		{"local-name", required_argument, 0, 'n'},
-		{"rate", required_argument, 0, 'r'},
-		{"count", required_argument, 0, 'c'},
-		{"verbose", no_argument, 0, 'v'},
-		{0, 0, 0, 0}
-	};
+	static struct option long_options[] = { { "interface", required_argument, 0, 'i' },
+						{ "local-address", required_argument, 0, 'a' },
+						{ "local-name", required_argument, 0, 'n' },
+						{ "rate", required_argument, 0, 'r' },
+						{ "count", required_argument, 0, 'c' },
+						{ "verbose", no_argument, 0, 'v' },
+						{ 0, 0, 0, 0 } };
 
-	while ((opt = getopt_long(argc, argv, "a:n:i:r:c:v", long_options,
-				  &long_index)) != -1) {
+	while ((opt = getopt_long(argc, argv, "a:n:i:r:c:v", long_options, &long_index)) != -1) {
 		switch (opt) {
 		case 'a':
 			local->can_addr.j1939.addr = strtoul(optarg, NULL, 16);
@@ -215,8 +207,7 @@ static int isobus_hrtbtm_srv_parse_args(struct isobus_hrtbtm_srv_priv *priv,
 		case 'i':
 			local->can_ifindex = if_nametoindex(optarg);
 			if (!local->can_ifindex) {
-				pr_err("Interface %s not found. Error: %d (%s)\n",
-				       optarg, errno, strerror(errno));
+				pr_err("Interface %s not found. Error: %d (%s)\n", optarg, errno, strerror(errno));
 				return -EINVAL;
 			}
 			interface_set = true;
