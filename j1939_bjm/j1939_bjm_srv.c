@@ -285,7 +285,7 @@ static int j1939_bjm_get_data(struct j1939_bjm_srv_priv *priv, struct j1939_bjm_
 		for (i = 1; i <= J1939_BJM_NUM_BUTTONS; ++i)
 			j1939_bjm_set_button(bjmp, i, fail_status);
 
-		bjmp->reserved = 0xff;
+		bjmp->detent_reserved = 0xff;
 
 		return 0;
 	}
@@ -328,7 +328,7 @@ static int j1939_bjm_get_data(struct j1939_bjm_srv_priv *priv, struct j1939_bjm_
 	 * - Bits 1-4: Reserved
 	 * Set them to 1 (in detent position) if the corresponding axis is at 0.
 	 */
-	bjmp->reserved = (((joy->x == 0) & 0x3) << 6) | (((joy->y == 0) & 0x3) << 4);
+	bjmp->detent_reserved = (((joy->x == 0) & 0x3) << 6) | (((joy->y == 0) & 0x3) << 4);
 
 	return 0;
 }
