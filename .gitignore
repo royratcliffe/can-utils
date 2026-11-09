@@ -25,6 +25,8 @@ tags
 /cansend
 /cansequence
 /cansniffer
+/isobus-hrtbtm-mon
+/isobus-hrtbtm-srv
 /isobusfs-cli
 /isobusfs-srv
 /isotpdump

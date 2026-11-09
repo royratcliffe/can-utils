@@ -77,6 +77,10 @@ PROGRAMS_ISOBUSFS := \
 	isobusfs-srv \
 	isobusfs-cli
 
+PROGRAMS_ISOBUS_HRTBTM := \
+	isobus-hrtbtm-srv \
+	isobus-hrtbtm-mon
+
 PROGRAMS_ISOTP := \
 	isotpdump \
 	isotpperf \
@@ -106,6 +110,7 @@ PROGRAMS := \
 	$(PROGRAMS_J1939_TIMEDATE) \
 	$(PROGRAMS_J1939_VEHICLE_POSITION) \
 	$(PROGRAMS_ISOBUSFS) \
+	$(PROGRAMS_ISOBUS_HRTBTM) \
 	$(PROGRAMS_ISOTP) \
 	$(PROGRAMS_J1939) \
 	$(PROGRAMS_SLCAN) \
@@ -135,7 +140,7 @@ all: $(PROGRAMS)
 
 clean:
 	rm -f $(PROGRAMS) *.o mcp251xfd/*.o isobusfs/*.o j1939_timedate/*.o \
-		j1939_vehicle_position/*.o
+		j1939_vehicle_position/*.o isobus_hrtbtm/*.o
 
 install:
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
@@ -163,6 +168,8 @@ isobusfs_c.o:	lib.h libj1939.h
 j1939_timedate_srv.o: lib.h libj1939.h
 j1939_timedate_cli.o: lib.h libj1939.h
 j1939_vehicle_position_srv.o: lib.h libj1939.h
+isobus_hrtbtm_srv.o: lib.h libj1939.h
+isobus_hrtbtm_mon.o: lib.h libj1939.h
 
 canframelen.o:  canframelen.h
 
@@ -198,6 +205,16 @@ j1939-vehicle-position-srv: \
 			libj1939.o \
 			j1939_vehicle_position/j1939_vehicle_position_srv.o
 		$(CC) $(LDFLAGS) $^ $(LDLIBS) $(shell pkg-config --libs libgps) -o $@
+
+isobus-hrtbtm-srv:	lib.o \
+			libj1939.o \
+			isobus_hrtbtm/isobus_hrtbtm_srv.o
+		$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
+
+isobus-hrtbtm-mon:	lib.o \
+			libj1939.o \
+			isobus_hrtbtm/isobus_hrtbtm_mon.o
+		$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 isobusfs-srv:	lib.o \
 		libj1939.o \

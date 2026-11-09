@@ -147,6 +147,22 @@ if(ENABLE_J1939)
     PRIVATE can j1939
   )
   install(TARGETS j1939-timedate-srv DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+  add_executable(isobus-hrtbtm-srv
+    isobus_hrtbtm/isobus_hrtbtm_srv.c
+  )
+  target_link_libraries(isobus-hrtbtm-srv
+    PRIVATE can j1939
+  )
+  install(TARGETS isobus-hrtbtm-srv DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+  add_executable(isobus-hrtbtm-mon
+    isobus_hrtbtm/isobus_hrtbtm_mon.c
+  )
+  target_link_libraries(isobus-hrtbtm-mon
+    PRIVATE can j1939
+  )
+  install(TARGETS isobus-hrtbtm-mon DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
 
 if(ENABLE_J1939 AND ENABLE_GPS)

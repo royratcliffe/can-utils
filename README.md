@@ -54,6 +54,10 @@ Follow the link to see examples on how this tools can be used:
 * isobusfs-cli : ISOBus file client
 * isobusfs-srv : ISOBus file server
 
+#### ISOBus Heartbeat tools
+* isobus-hrtbtm-srv : cyclically transmit the ISO 11783-7 heartbeat message
+* isobus-hrtbtm-mon : monitor heartbeat messages, reporting sequence gaps and timeouts
+
 #### Log file converters
 * asc2log : convert ASC logfile to compact CAN frame logfile
 * log2asc : convert compact CAN frame logfile to ASC logfile
