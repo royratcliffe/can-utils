@@ -321,9 +321,14 @@ static int j1939_bjm_get_data(struct j1939_bjm_srv_priv *priv, struct j1939_bjm_
 		j1939_bjm_set_button(bjmp, i, status);
 	}
 
-	/* This PG's last byte is not assigned and hence must be set
-	 * to 0xFF as per J1939-71, section 5.2 */
-	bjmp->reserved = 0xff;
+	/*
+	 * Byte 4 contains the X and Y axis detent position status values.
+	 * - Bits 7-8: X-axis detent position status (SPN 1795 / 1815)
+	 * - Bits 5-6: Y-axis detent position status (SPN 1799 / 1819)
+	 * - Bits 1-4: Reserved
+	 * Set them to 1 (in detent position) if the corresponding axis is at 0.
+	 */
+	bjmp->reserved = (((joy->x == 0) & 0x3) << 6) | (((joy->y == 0) & 0x3) << 4);
 
 	return 0;
 }

@@ -107,8 +107,8 @@ struct j1939_bjm_packet {
 	uint8_t x_pos_msb;
 	uint8_t y_status_pos;
 	uint8_t y_pos_msb;
-	uint8_t buttons[3];
 	uint8_t reserved;
+	uint8_t buttons[3];
 } __attribute__((__packed__));
 
 /**
