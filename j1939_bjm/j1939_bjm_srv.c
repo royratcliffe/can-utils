@@ -43,6 +43,7 @@ struct j1939_bjm_joystick {
 	int16_t x;
 	int16_t y;
 	uint16_t buttons; /* bitmask, bit 0 is button 1 */
+	bool updated; /* state changed since last transmission */
 };
 
 struct j1939_bjm_srv_priv;
@@ -166,6 +167,9 @@ static void j1939_bjm_joy_lost(struct j1939_bjm_srv_priv *priv, struct j1939_bjm
 	close(joy->fd);
 	joy->fd = -1;
 	joy->state = J1939_BJM_JOY_ERROR;
+	/* Broadcast the error statuses without waiting for the next
+	 * periodic transmission */
+	joy->updated = true;
 }
 
 /**
@@ -203,19 +207,29 @@ static int j1939_bjm_joy_rx(struct j1939_bjm_srv_priv *priv, struct j1939_bjm_jo
 
 		switch (ev.type & ~JS_EVENT_INIT) {
 		case JS_EVENT_AXIS:
-			if (ev.number == 0)
+			if (ev.number == 0 && joy->x != ev.value) {
 				joy->x = ev.value;
-			else if (ev.number == 1)
+				joy->updated = true;
+			} else if (ev.number == 1 && joy->y != ev.value) {
 				joy->y = ev.value;
+				joy->updated = true;
+			}
 			break;
-		case JS_EVENT_BUTTON:
+		case JS_EVENT_BUTTON: {
+			uint16_t buttons = joy->buttons;
+
 			if (ev.number >= J1939_BJM_NUM_BUTTONS)
 				break;
 			if (ev.value)
-				joy->buttons |= 1 << ev.number;
+				buttons |= 1 << ev.number;
 			else
-				joy->buttons &= ~(1 << ev.number);
+				buttons &= ~(1 << ev.number);
+			if (joy->buttons != buttons) {
+				joy->buttons = buttons;
+				joy->updated = true;
+			}
 			break;
+		}
 		default:
 			break;
 		}
@@ -576,11 +590,43 @@ static int j1939_bjm_srv_handle_events(struct j1939_bjm_srv_priv *priv, unsigned
 }
 
 /**
+ * handler_next_send_time - Determine the effective next send time for a
+ *			    PGN handler.
+ * @priv: Pointer to the server's private data structure.
+ * @handler: Pointer to the PGN handler structure.
+ *
+ * This function returns the handler's scheduled periodic send time, pulled
+ * forward when the wired joystick has new events pending: an updated
+ * joystick is broadcast as soon as the minimum event interval has elapsed
+ * since the last transmission, rather than waiting for the full repetition
+ * rate.
+ *
+ * Return: the effective next send time as a struct timespec.
+ */
+static struct timespec handler_next_send_time(struct j1939_bjm_srv_priv *priv, struct j1939_pgn_handler *handler)
+{
+	struct timespec next = handler->next_time;
+	struct timespec event_next;
+
+	if (!priv->joy[handler->joy_index].updated)
+		return next;
+
+	event_next = handler->last_time;
+	timespec_add_ms(&event_next, J1939_BJM_EVENT_RATE_MS);
+
+	if (timespec_diff_ms(&next, &event_next) > 0)
+		next = event_next;
+
+	return next;
+}
+
+/**
  * determine_earliest_next_send_time - Determines the earliest next send time.
  * @priv: Pointer to the server's private data structure.
  *
  * This function determines the earliest next send time for all PGN handlers
- * based on their repetition rates and last send times.
+ * based on their repetition rates, last send times and pending joystick
+ * events.
  *
  * Return: the earliest time as a struct timespec.
  */
@@ -589,14 +635,18 @@ static struct timespec determine_earliest_next_send_time(struct j1939_bjm_srv_pr
 	struct timespec earliest = { 0, 0 };
 
 	for (size_t i = 0; i < priv->num_handlers; ++i) {
+		struct timespec next;
+
 		if (!priv->handlers[i].enabled)
 			continue;
 
-		if (earliest.tv_sec == 0 && earliest.tv_nsec == 0)
-			earliest = priv->handlers[i].next_time;
+		next = handler_next_send_time(priv, &priv->handlers[i]);
 
-		if ((priv->handlers[i].next_time.tv_sec < earliest.tv_sec) || (priv->handlers[i].next_time.tv_sec == earliest.tv_sec && priv->handlers[i].next_time.tv_nsec < earliest.tv_nsec))
-			earliest = priv->handlers[i].next_time;
+		if (earliest.tv_sec == 0 && earliest.tv_nsec == 0)
+			earliest = next;
+
+		if ((next.tv_sec < earliest.tv_sec) || (next.tv_sec == earliest.tv_sec && next.tv_nsec < earliest.tv_nsec))
+			earliest = next;
 	}
 
 	return earliest;
@@ -607,29 +657,37 @@ static struct timespec determine_earliest_next_send_time(struct j1939_bjm_srv_pr
  * @priv: Pointer to the server's private data structure.
  * @handler: Pointer to the PGN handler structure.
  *
- * This function sends a periodic message for a specific PGN handler based on
- * the repetition rate and jitter. It calculates the time difference between
- * the last and next send times and sends the message if the time is within
- * the jitter range. It updates the last and next send times for the handler.
+ * This function sends a message for a specific PGN handler based on the
+ * repetition rate and jitter, or earlier when new joystick events are
+ * pending and the minimum event interval has elapsed since the last
+ * transmission. Event-driven sends allow no jitter, which enforces the
+ * minimum interval as a rate limit. It updates the last and next send
+ * times for the handler and clears the pending event flag.
  *
  * Returns 0 on success or a negative error code if an issue occurs.
  */
 static int send_message_for_handler(struct j1939_bjm_srv_priv *priv, struct j1939_pgn_handler *handler)
 {
+	struct timespec next;
 	int64_t time_diff;
+	bool updated;
 	int ret;
 
 	if (!handler->enabled)
 		return 0;
 
-	time_diff = timespec_diff_ms(&handler->next_time, &priv->cmn.last_time);
-	if (time_diff > handler->jitter_ms)
+	updated = priv->joy[handler->joy_index].updated;
+	next = handler_next_send_time(priv, handler);
+
+	time_diff = timespec_diff_ms(&next, &priv->cmn.last_time);
+	if (time_diff > (updated ? 0 : handler->jitter_ms))
 		return 0;
 
 	ret = prepare_and_send_message(priv, handler);
 	if (ret < 0)
 		return ret;
 
+	priv->joy[handler->joy_index].updated = false;
 	handler->last_time = priv->cmn.last_time;
 	handler->next_time = priv->cmn.last_time;
 	timespec_add_ms(&handler->next_time, handler->repetition_rate_ms);
@@ -878,6 +936,9 @@ static void j1939_bjm_srv_print_help(void)
 	printf("Basic Joystick Message 1 (BJM1) and Basic Joystick Message 2 (BJM2) with\n");
 	printf("lever positions and button statuses read from the attached Linux joystick\n");
 	printf("devices. The first joystick is broadcast as BJM1 and the second as BJM2.\n");
+	printf("\n");
+	printf("Each message is broadcast every %d ms, or as soon as %d ms after the\n", J1939_BJM_REPETITION_RATE_MS, J1939_BJM_EVENT_RATE_MS);
+	printf("previous transmission when new joystick events arrive.\n");
 	printf("\n");
 	printf("Supported PGNs:\n");
 	printf("  - Basic Joystick Message 1 (PGN 64982)\n");

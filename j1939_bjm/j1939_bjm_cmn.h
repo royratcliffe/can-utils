@@ -45,6 +45,9 @@ struct j1939_bjm_msg {
 #define J1939_BJM_MAX_TRANSFER_LENGTH sizeof(struct j1939_bjm_packet)
 #define J1939_BJM_REPETITION_RATE_MS 100
 #define J1939_BJM_JITTER_MS 20
+/* Minimum interval between transmissions when new joystick events arrive;
+ * state changes are broadcast early, but never more often than this. */
+#define J1939_BJM_EVENT_RATE_MS 20
 
 /* 10 bit position: 0.1 %/bit, valid range 0 to 1000 (0 to 100 %) */
 #define J1939_BJM_POSITION_MAX 1000
