@@ -1,0 +1,90 @@
+# SPDX-License-Identifier: LGPL-2.0-only
+# SPDX-FileCopyrightText: 2026 Roy Ratcliffe <roy@ratcliffe.me>
+#
+# Copy to /etc/systemd/system/isobus-hrtbtm-srv.service then run:
+#   systemctl daemon-reload
+#   systemctl enable --now isobus-hrtbtm-srv
+# Check it using:
+#   systemctl status isobus-hrtbtm-srv
+#
+# Override the CAN interface, J1939 identity and extra options without
+# editing this file by creating /etc/default/isobus-hrtbtm-srv, e.g.:
+#   INTERFACE=can0
+#   LOCAL_IDENTITY=-a 0x90
+#   OPTIONS=-v
+# LOCAL_IDENTITY may use either "-a <address>" or "-n <name>".
+#
+# For the lowest and most deterministic latency, pair this unit with a
+# PREEMPT_RT kernel and consider isolating a CPU on the kernel command
+# line (isolcpus=, nohz_full=, irqaffinity=) matched by CPUAffinity=
+# below.
+
+[Unit]
+Description=ISO 11783-7 Heartbeat Server
+Documentation=https://github.com/linux-can/can-utils
+
+# Bind the service lifetime to the CAN interface device: start only once
+# the interface exists and stop if it disappears.
+BindsTo=sys-subsystem-net-devices-can0.device
+After=sys-subsystem-net-devices-can0.device
+
+[Service]
+Type=exec
+Environment=INTERFACE=can0
+Environment="LOCAL_IDENTITY=-a 0x90"
+Environment=OPTIONS=
+EnvironmentFile=-/etc/default/isobus-hrtbtm-srv
+ExecStart=/usr/bin/isobus-hrtbtm-srv -i ${INTERFACE} $LOCAL_IDENTITY $OPTIONS
+
+Restart=on-failure
+RestartSec=2
+
+# --- Real-time performance ---
+# SCHED_FIFO pre-empts all normal (SCHED_OTHER) work; keep the priority
+# below kernel threads such as per-CPU irq threads (typically 50+ on
+# PREEMPT_RT would contend, so 50-80 is a sensible band for the hot path).
+CPUSchedulingPolicy=fifo
+CPUSchedulingPriority=70
+# Real-time I/O scheduling class for any block I/O the daemon issues.
+IOSchedulingClass=realtime
+IOSchedulingPriority=0
+# Allow the process to retain/raise real-time priorities and to lock
+# memory, and never throttle its real-time runtime.
+LimitRTPRIO=99
+LimitRTTIME=infinity
+LimitMEMLOCK=infinity
+# Minimise timer coalescing delay for clock_nanosleep/poll timeouts.
+TimerSlackNSec=10000
+# Make the daemon a last-resort target for the OOM killer.
+OOMScoreAdjust=-900
+# Pin to an isolated CPU for best determinism (match isolcpus=):
+#CPUAffinity=3
+# Prevent any forked children from inheriting real-time scheduling:
+#CPUSchedulingResetOnFork=yes
+
+# --- Privileges ---
+# The J1939 socket needs no privilege; uncomment to drop root entirely:
+#User=j1939
+#Group=j1939
+
+# --- Sandboxing (kept compatible with CAN sockets) ---
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=no
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_CAN AF_UNIX
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target
