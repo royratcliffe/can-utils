@@ -581,7 +581,7 @@ static int j1939_bjm_srv_handle_events(struct j1939_bjm_srv_priv *priv, unsigned
 		if (ev->events & POLLIN) {
 			ret = j1939_bjm_srv_rx_one(priv, ev->data.fd);
 			if (ret) {
-				warn("recv one");
+				pr_warn("recv one");
 				return ret;
 			}
 		}
