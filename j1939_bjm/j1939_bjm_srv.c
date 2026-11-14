@@ -319,7 +319,7 @@ static int j1939_bjm_get_data(struct j1939_bjm_srv_priv *priv, struct j1939_bjm_
 		for (i = 1; i <= J1939_BJM_NUM_BUTTONS; ++i)
 			j1939_bjm_set_button(bjmp, i, fail_status);
 
-		bjmp->detent_reserved = 0xf0;
+		bjmp->detent_reserved = 0xf0 | 0x0f;
 
 		return 0;
 	}
@@ -364,7 +364,7 @@ static int j1939_bjm_get_data(struct j1939_bjm_srv_priv *priv, struct j1939_bjm_
 	 * either direction, the nearest analogue of a lever latched in its
 	 * end detent.
 	 */
-	bjmp->detent_reserved = (j1939_bjm_axis_in_detent(joy->x) << 6) | (j1939_bjm_axis_in_detent(joy->y) << 4);
+	bjmp->detent_reserved = (j1939_bjm_axis_in_detent(joy->x) << 6) | (j1939_bjm_axis_in_detent(joy->y) << 4) | 0x0f;
 
 	return 0;
 }
