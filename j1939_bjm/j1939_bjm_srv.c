@@ -530,7 +530,7 @@ static int j1939_bjm_srv_rx_one(struct j1939_bjm_srv_priv *priv, int sock)
 
 	ret = j1939_bjm_srv_rx_buf(priv, &msg);
 	if (ret < 0) {
-		pr_warn("failed to process rx buf: %i (%s)\n", ret, strerror(ret));
+		pr_warn("failed to process rx buf: %i (%s)\n", ret, strerror(-ret));
 		return ret;
 	}
 
