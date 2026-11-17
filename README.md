@@ -58,6 +58,20 @@ Follow the link to see examples on how this tools can be used:
 * isobus-hrtbtm-srv : cyclically transmit the ISO 11783-7 heartbeat message
 * isobus-hrtbtm-mon : monitor heartbeat messages, reporting sequence gaps and timeouts
 
+ISO 11783-7 specifies a 100 ms heartbeat repetition rate. The server schedules
+transmissions against absolute `CLOCK_MONOTONIC` deadlines to avoid cumulative
+drift, but this is a target cadence, not a hard real-time guarantee: normal Linux
+scheduling, socket and driver latency, and CAN bus arbitration or load can delay
+when a frame reaches the bus. The monitor timestamps received messages with the
+monotonic clock and, by default, reports a heartbeat as lost after 300 ms without
+a message (three nominal cycles); use `-t` to configure a different timeout.
+
+For applications that depend on tighter timing, use a real-time-capable setup
+such as PREEMPT_RT and configure suitable process scheduling priority and CPU
+affinity. The supplied `isobus-hrtbtm-srv.service` demonstrates systemd real-time
+scheduling settings. These measures can reduce scheduling jitter, but cannot
+guarantee end-to-end delivery deadlines on a contended CAN bus.
+
 #### Log file converters
 * asc2log : convert ASC logfile to compact CAN frame logfile
 * log2asc : convert compact CAN frame logfile to ASC logfile
